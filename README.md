@@ -1,120 +1,60 @@
-# Personalized_Gmail
-This repository demonstrates a Retrieval Augmented Generation (RAG) system applied to email data. It showcases how to extract personal information from emails and use it to answer user queries. The system leverages Google's Text Embedding API for semantic search and Google's Generative AI for crafting natural language responses.
+# Email RAG for Enhanced Customer Service: A GPU-Efficient Approach
 
-## System Architecture
+This repository showcases an innovative approach to revolutionizing customer service using a Retrieval Augmented Generation (RAG) system. By applying this system to email data, we demonstrate how to deliver personalized, efficient, and proactive support, even with limited computational resources.
 
-The RAG system is implemented in Python and consists of the following key components:
+## The Challenge: Personalized Customer Service Without the GPU Overhead
 
-1. **Data Loading and Preprocessing:**
-   - Email data is loaded from a CSV file.
-   - A `complete_email` column is created by combining the `date`, `time`, `subject`, `from`, and `body` fields for each email.
+Traditional deep learning models, particularly in Natural Language Processing (NLP), often demand substantial GPU power for tasks like text embedding and response generation. This poses a significant barrier for many businesses, especially smaller ones, looking to leverage AI for customer service enhancement.
 
-    ![Data Loading and Preprocessing](./img/image1.png)
+Our project tackles this challenge head-on by demonstrating how to build a powerful RAG system that prioritizes efficiency without compromising accuracy.
 
-2. **Word Embedding Generation:**
-   - Google's Text Embedding API (`models/text-embedding-ada-002`) is used to generate dense vector representations (embeddings) for each `complete_email`.
-   - These embeddings capture the semantic meaning of the emails.
+## Our Solution: Email RAG with API-Driven Embeddings and Local Response Generation
 
-    ![Word Embedding Generation](./img/image2.png)
+1. **API-Powered Text Embeddings:**
+   - Recognizing the computational demands of embedding large volumes of text, we utilize Google's Text Embedding API. This approach offers several key advantages:
+      - **Scalability:**  Handle large customer interaction datasets without the need for powerful GPUs.
+      - **Efficiency:**  Benefit from Google's optimized infrastructure for fast and efficient embedding generation.
+      - **State-of-the-art Performance:**  Leverage Google's pre-trained models to capture rich semantic meaning from customer emails.
 
-3. **Query Processing:**
-   - User queries are first embedded using the same Text Embedding API.
-   - Cosine similarity is calculated between the query embedding and all email embeddings.
-   - The top-k most similar emails are retrieved, indicating the most relevant emails to the query.
+   Here's how we process and embed data, as visualized in our code: 
+
+   ![Data Loading and Preprocessing](./img/image1.png)
+   ![Word Embedding Generation](./img/image2.png)
+
+2. **Local Response Generation with Gensim:**
+    -  We leverage the `gensim` library for response generation, a powerful and efficient library that excels in similarity search and topic modeling. Key benefits include:
+        - **GPU Independence:** Run effectively on standard CPUs, eliminating the reliance on expensive GPU resources. 
+        - **Lightweight and Fast:** `gensim` is designed for efficient processing, making it ideal for real-time customer service applications. 
+
+   Our system generates intelligent responses by referencing relevant past interactions, as illustrated below:
+
+   ![Response Generation](./img/image3.png)
+
+##  Adapting Email RAG to Customer Service 
+
+Here's how our existing Email RAG system can be applied to the domain of customer service:
+
+1. **Data Ingestion and Preprocessing:**
+    - Instead of email data, you would input customer service interactions, such as chat logs, support tickets, or even transcribed phone calls. 
+    -  The `complete_interaction` field would combine relevant attributes from these interactions.
+
+2. **Leveraging Existing Embeddings:**
+    - The same principle of embedding interactions applies. You would use Google's Text Embedding API to generate embeddings for customer service data.
+
+3. **Query Understanding and Retrieval:** 
+    - Incoming customer inquiries would be embedded and compared against the existing interaction embeddings to find the most similar historical cases.
 
 4. **Response Generation:**
-   - Google's Generative AI model is employed to formulate a response.
-   - The model is provided with the original query and the retrieved relevant emails as context.
-   - It generates a human-like response, incorporating information from the emails.
+    -  This is where our approach differs slightly. Instead of directly using a large language model, you'd employ `gensim` for:
+        - **Similarity-Based Retrieval:** Find the most relevant responses from past interactions based on embedding similarity.
+        - **Topic Modeling:** Identify common topics and themes within customer inquiries, which can then be used to provide more targeted information or route inquiries to specialized agents.
 
-    ![Response Generation](./img/image3.png)
+##  Benefits of Our Approach
 
-## Example Workflow
+* **Cost-Effective:** Reduce operational costs by minimizing hardware requirements.
+* **Accessibility:**  Empower businesses of all sizes to leverage advanced AI for customer service.
+* **Real-Time Performance:**  Deliver rapid responses to customer inquiries, crucial for a positive service experience. 
 
-Let's illustrate the workflow with an example:
+## Conclusion
 
-**User Query:** "Who is DMS teacher?"
-
-1. **Embedding and Retrieval:**
-   - The query is embedded.
-   - Similarity search identifies emails discussing DMS-related topics.
-
-2. **Response Generation:**
-   - The Generative AI model receives the query and relevant emails.
-   - It crafts a response like: "Based on your emails, the DMS teacher is [Teacher's Name]."
-
-## Code Snippets
-
-```python
-import pandas as pd
-from gensim.models import KeyedVectors
-# Assuming 'genai' is properly set up for Google Generative AI
-from genai import ... 
-
-# **Google API Key Configuration** 
-genai.configure(api_key='YOUR_API_KEY')
-
-# **Create the model**
-# See https://ai.google.dev/api/python/google/generativeai/GenerativeModel
-generation_config = {
-    "temperature": 1,
-    "top_p": 0.95,
-    "top_k": 64,
-    "max_output_tokens": 10000,
-    "response_mime_type": "text/plain",
-}
-
-model = genai.GenerativeModel(
-    model_name="generative-model-1.5-flash", 
-    generation_config=generation_config,
-    # safety_settings - Adjust softy settings 
-    # See https://ai.google.dev/dev/api-docs/safety-settings 
-)
-system_instruction= "You are a personal assistant who is helping vineet to respond to question based on the emails"
-
-
-file_path = "/kaggle/input/email1-dataset/Untitled spreadsheet - mail (1).csv"
-df = pd.read_csv(file_path)
-
-def combine_sense(row):
-    return "date and time: " + str(row['data']) + "||subject: " + str(row['subject']) + "||from: " + str(row['email']) + "||\n" + str(row['body'])
-
-df['complete_email'] = df.apply(combine_sense, axis=1)
-
-def embed_text(text):
-    result = genai.embed_content(model="models/text-embedding-ada-002", content=text)
-    return result['embedding']
-
-df['embedding'] = df.apply(embed_text, axis=1)
-
-df.to_pickle("email_embed.pkl")
-df = pd.read_pickle("email_embed.pkl")
-
-
-def query_answer(question, df, k=5):
-    question_emd = genai.embed_content(model="models/text-embedding-ada-002", content=question)
-    emb = question_emd['embedding']
-
-    def questio(row):
-        return emb
-
-    df['question'] =  df.apply(questio, axis=1)
-
-    def distance(row):
-        return cosine_similarity(row['question'], row['embedding']) # you need to define or import cosine_similarity 
-
-    df['distance'] = df.apply(distance, axis=1)
-    sorted_df = df.sort_values('distance', ascending=False, inplace=False)
-
-    def combine_email(k):
-        text = ""
-        for i in range(k):
-            text += sorted_df['complete_email'].iloc[i] + "\n\n"
-        return text
-
-    text = combine_email(k)
-    question_model = question + "\n\n" + "use this information from email as context to answer the question" + "comp"
-    response = chat_session.send_message(question_model)
-    return response.text
-
-print(query_answer("what subjects i have studied in the collage with teacher name", df, 15))
+This project demonstrates a practical and effective approach to building a powerful customer service RAG system, even with limited access to GPU resources. By combining API-driven embeddings with local, efficient response generation using `gensim`, we pave the way for wider adoption of AI-powered customer service solutions.
